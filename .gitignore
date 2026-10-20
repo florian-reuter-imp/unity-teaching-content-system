@@ -1,0 +1,30 @@
+# Dies ist ein Unity-PAKET-Repo, kein Projekt. Die .meta-Dateien gehoeren
+# ausdruecklich mit ins Repo: Ohne sie bekaeme jeder Nutzer neue GUIDs.
+Library/
+Temp/
+Obj/
+Build/
+Builds/
+Logs/
+UserSettings/
+*.csproj
+*.sln
+*.user
+*.userprefs
+*.pidb
+*.booproj
+*.svd
+*.unitypackage
+.vs/
+.idea/
+.vscode/
+.DS_Store
+Thumbs.db
+
+# Die Beispielszene wird bewusst nicht veroeffentlicht. Sie enthielt 88
+# Ueberschreibungen an realvirtuals eigenem Prefab und war ohne dieses
+# kostenpflichtige Paket nicht lauffaehig -- ausgerechnet in einem Paket,
+# dessen Zusage "keine fremde Abhaengigkeit" lautet. Dazu fehlten allen
+# Beispieldateien die .meta, ihre Verweise untereinander waeren beim Import
+# gebrochen. Sie kommt wieder, wenn sie ohne Fremdbestandteile neu gebaut ist.
+Samples~/

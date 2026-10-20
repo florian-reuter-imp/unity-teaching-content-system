@@ -1,0 +1,18 @@
+{
+    "name": "TeachingContentSystemEditor",
+    "rootNamespace": "TeachingContentSystem.EditorTools",
+    "references": [
+        "GUID:ec56d60445b4d9542bbf1170c3a7697c"
+    ],
+    "includePlatforms": [
+        "Editor"
+    ],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}

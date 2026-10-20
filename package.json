@@ -1,0 +1,22 @@
+{
+  "name": "com.github.hka-imp.tcs",
+  "version": "0.1.0",
+  "displayName": "Teaching Content System",
+  "description": "Lehrinhalte als JSON-Dateien schreiben und zur Laufzeit abspielen: Folien, Quizfragen, Interaktionen und Szenenaktionen, mehrsprachig ueber Dateivarianten. Ein Kurs ist ein Ordner mit Dateien - versionierbar, uebersetzbar, einzeln in andere Projekte umziehbar. Ohne fremde Abhaengigkeiten, unabhaengig von Robotik oder XR.",
+  "unity": "6000.0",
+  "keywords": [
+    "teaching",
+    "courseware",
+    "authoring",
+    "json",
+    "e-learning",
+    "localization"
+  ],
+  "author": {
+    "name": "Florian Reuter"
+  },
+  "dependencies": {
+    "com.unity.nuget.newtonsoft-json": "3.2.2",
+    "com.unity.ugui": "2.0.0"
+  }
+}
