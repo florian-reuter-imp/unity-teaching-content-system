@@ -41,6 +41,22 @@ namespace TeachingContentSystem.Runtime.UI
         [Header("Scroll")]
         public ScrollRect scrollView;
 
+        [Header("Navigation (optional)")]
+        // Die Knoepfe selbst rufen ContentManager.GoToNext und GoBack wie
+        // bisher ueber ihr OnClick auf. Hier geht es nur darum, sie am Ende
+        // (und am Anfang) auszugrauen, statt ins Leere zu druecken.
+        [Tooltip("Greyed out at the last block unless TcsSettings.WrapAtEnd is on.")]
+        public Button nextButton;
+
+        [Tooltip("Greyed out at the first block unless TcsSettings.WrapAtEnd is on.")]
+        public Button backButton;
+
+        [Tooltip("If the fields above are empty: find buttons in this canvas whose OnClick calls ContentManager.GoToNext / GoBack.")]
+        public bool findNavigationButtons = true;
+
+        [Tooltip("Optional. Without it the first ContentManager in the scene is used.")]
+        public ContentManager contentManager;
+
         void Awake()
         {
             Instance = this;
@@ -50,12 +66,68 @@ namespace TeachingContentSystem.Runtime.UI
         {
             NavigationEvents.OnBlockStarted += HandleBlockStarted;
             NavigationEvents.OnBlockNotice += HandleBlockNotice;
+            NavigationEvents.OnNodeEntered += HandleNodeEntered;
         }
 
         void OnDisable()
         {
             NavigationEvents.OnBlockStarted -= HandleBlockStarted;
             NavigationEvents.OnBlockNotice -= HandleBlockNotice;
+            NavigationEvents.OnNodeEntered -= HandleNodeEntered;
+        }
+
+        void Start()
+        {
+            if (findNavigationButtons && (nextButton == null || backButton == null))
+                FindNavigationButtons();
+            RefreshNavigation();
+        }
+
+        private void HandleNodeEntered(string nodeId) => RefreshNavigation();
+
+        /// <summary>
+        /// Graut "weiter" am Ende und "zurueck" am Anfang aus, je nach
+        /// <see cref="ContentManager.CanGoNext"/> und
+        /// <see cref="ContentManager.CanGoBack"/>. Wird bei jedem Knoten
+        /// aufgerufen; nach einer Aenderung an
+        /// <see cref="TcsSettings.WrapAtEnd"/> zur Laufzeit von Hand.
+        /// </summary>
+        public void RefreshNavigation()
+        {
+            ContentManager manager = Manager();
+            bool loaded = manager != null && manager.Graph != null;
+            if (nextButton != null) nextButton.interactable = loaded && manager.CanGoNext;
+            if (backButton != null) backButton.interactable = loaded && manager.CanGoBack;
+        }
+
+        private ContentManager Manager()
+        {
+            if (contentManager == null)
+                contentManager = FindAnyObjectByType<ContentManager>();
+            return contentManager;
+        }
+
+        /// <summary>
+        /// Sucht im eigenen Canvas Knoepfe, deren OnClick (im Inspector
+        /// verdrahtet) <c>GoToNext</c> oder <c>GoBack</c> eines
+        /// ContentManagers aufruft. So funktioniert das Ausgrauen auch an
+        /// vorhandenen Prefabs, ohne die Felder neu zu belegen.
+        /// </summary>
+        private void FindNavigationButtons()
+        {
+            Canvas canvas = GetComponentInParent<Canvas>();
+            Transform root = canvas != null ? canvas.rootCanvas.transform : transform;
+
+            foreach (Button button in root.GetComponentsInChildren<Button>(true))
+            {
+                for (int i = 0; i < button.onClick.GetPersistentEventCount(); i++)
+                {
+                    if (!(button.onClick.GetPersistentTarget(i) is ContentManager)) continue;
+                    string method = button.onClick.GetPersistentMethodName(i);
+                    if (method == nameof(ContentManager.GoToNext) && nextButton == null) nextButton = button;
+                    if (method == nameof(ContentManager.GoBack) && backButton == null) backButton = button;
+                }
+            }
         }
 
         public void SetBranding(Sprite hka, Sprite imp)

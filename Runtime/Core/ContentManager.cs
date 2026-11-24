@@ -22,6 +22,96 @@ namespace TeachingContentSystem.Runtime.Core
         private NavigationState _state = new();
         private IContentBlock _activeBlock;
 
+        // Das Ende wird je Besuch des letzten Knotens einmal gemeldet. Eine
+        // Folie mit Dauer am Kursende wuerde sonst in jedem Bild erneut
+        // "weiter" verlangen.
+        private bool _endReported;
+
+        /// <summary>
+        /// "Weiter" wurde am letzten Baustein verlangt. Gleichbedeutend mit
+        /// <see cref="NavigationEvents.OnCourseEndReached"/>, aber an diesen
+        /// ContentManager gebunden. Der Wert ist die Kennung des Knotens.
+        /// </summary>
+        public event System.Action<string> CourseEndReached;
+
+        // ---------------------------------------------------------
+        // NAVIGATION STATE
+        // ---------------------------------------------------------
+
+        /// <summary>Der aktuelle Knoten hat keinen Nachfolger.</summary>
+        public bool IsAtEnd
+            => TryGetCurrent(out var node) && node.NextIds.Count == 0;
+
+        /// <summary>Der aktuelle Knoten ist der Startknoten des Kurses.</summary>
+        public bool IsAtStart
+            => TryGetCurrent(out var node) && node.Id == Graph.StartNodeId;
+
+        /// <summary>
+        /// Ob "weiter" etwas tut: Es gibt einen Nachfolger, oder der Kurs
+        /// beginnt mit <see cref="TcsSettings.WrapAtEnd"/> wieder von vorn.
+        /// Eine Oberflaeche graut "weiter" aus, wenn das false ist.
+        /// </summary>
+        public bool CanGoNext
+        {
+            get
+            {
+                if (!TryGetCurrent(out var node)) return false;
+                if (node.NextIds.Count > 0) return true;
+                return TcsSettings.WrapAtEnd && WrapTarget(forward: true) != null;
+            }
+        }
+
+        /// <summary>
+        /// Ob "zurueck" etwas tut: Es gibt einen Verlauf, oder am Start fuehrt
+        /// <see cref="TcsSettings.WrapAtEnd"/> zum letzten Baustein.
+        /// </summary>
+        public bool CanGoBack
+        {
+            get
+            {
+                if (!TryGetCurrent(out _)) return false;
+                if (_state.History.Count > 0) return true;
+                return TcsSettings.WrapAtEnd && IsAtStart && WrapTarget(forward: false) != null;
+            }
+        }
+
+        private bool TryGetCurrent(out RuntimeContentNode node)
+        {
+            node = null;
+            return _nodes != null
+                && !string.IsNullOrEmpty(_state.CurrentNodeId)
+                && _nodes.TryGetValue(_state.CurrentNodeId, out node);
+        }
+
+        /// <summary>
+        /// Wohin ein Umlauf fuehrt: vorwaerts zum Startknoten, rueckwaerts
+        /// zum letzten Knoten des letzten Kapitels. Null, wenn der Kurs nur
+        /// aus dem aktuellen Knoten besteht.
+        /// </summary>
+        private string WrapTarget(bool forward)
+        {
+            if (Graph == null) return null;
+
+            string target;
+            if (forward)
+            {
+                target = Graph.StartNodeId;
+            }
+            else
+            {
+                RuntimeContentNode last = null;
+                if (Graph.ChapterOrder.Count > 0)
+                    Graph.LastNodeOfChapter.TryGetValue(
+                        Graph.ChapterOrder[Graph.ChapterOrder.Count - 1], out last);
+                if (last == null && Graph.Nodes.Count > 0)
+                    last = Graph.Nodes[Graph.Nodes.Count - 1];
+                target = last?.Id;
+            }
+
+            if (string.IsNullOrEmpty(target) || target == _state.CurrentNodeId) return null;
+            return _nodes.ContainsKey(target) ? target : null;
+        }
+
         // ---------------------------------------------------------
         // PUBLIC ENTRY POINT
         // ---------------------------------------------------------
@@ -95,6 +185,7 @@ namespace TeachingContentSystem.Runtime.Core
 
             _state.CurrentNodeId = nodeId;
             _state.TimeInNode = 0;
+            _endReported = false;
 
             NavigationEvents.OnNodeEntered?.Invoke(nodeId);
 
@@ -120,13 +211,35 @@ namespace TeachingContentSystem.Runtime.Core
         // NAVIGATION
         // ---------------------------------------------------------
 
+        /// <summary>
+        /// Zum naechsten Baustein. Am letzten Baustein ist das kein Fehler,
+        /// sondern das Ende des Kurses: Es wird einmal gemeldet
+        /// (<see cref="CourseEndReached"/>), und mit
+        /// <see cref="TcsSettings.WrapAtEnd"/> geht es danach von vorn los.
+        /// </summary>
         public void GoToNext()
         {
-            var current = _nodes[_state.CurrentNodeId];
+            if (!TryGetCurrent(out var current))
+                return;
 
             if (current.NextIds.Count == 0)
             {
-                Debug.LogError($"Node {current.Id} has no NextIds");
+                if (!_endReported)
+                {
+                    _endReported = true;
+                    NavigationEvents.OnCourseEndReached?.Invoke(current.Id);
+                    CourseEndReached?.Invoke(current.Id);
+                }
+
+                if (!TcsSettings.WrapAtEnd)
+                    return;
+
+                string start = WrapTarget(forward: true);
+                if (start == null)
+                    return;
+
+                ExitCurrentNode();
+                EnterNode(start, true);
                 return;
             }
 
@@ -136,11 +249,20 @@ namespace TeachingContentSystem.Runtime.Core
             EnterNode(nextId, true);   // record history
         }
 
+        /// <summary>
+        /// Zurueck im Verlauf. Ohne Verlauf tut es nichts, ausser am Start
+        /// mit <see cref="TcsSettings.WrapAtEnd"/>: dann zum letzten Baustein.
+        /// </summary>
         public void GoBack()
         {
             if (_state.History.Count == 0)
             {
-                Debug.LogWarning("No history to go back to.");
+                string last = TcsSettings.WrapAtEnd && IsAtStart ? WrapTarget(forward: false) : null;
+                if (last == null)
+                    return;
+
+                ExitCurrentNode();
+                EnterNode(last, false);
                 return;
             }
 

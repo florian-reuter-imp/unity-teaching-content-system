@@ -1,0 +1,33 @@
+{
+  "chapter": "Einführung",
+  "blocks": [
+    {
+      "id": "slide_intro",
+      "type": "Slide",
+      "data": {
+        "title": "Willkommen",
+        "text": "Willkommen im Beispielkurs. Er zeigt, wie ein Kurs aus JSON-Dateien entsteht."
+      }
+    },
+    {
+      "id": "slide_step1",
+      "type": "Slide",
+      "data": {
+        "title": "Eine Datei je Kapitel",
+        "text": [
+          "Ein Kurs ist eine course.json, die ihre Kapitel aufzählt.",
+          "Jedes Kapitel ist eine Datei mit einer geordneten Liste von Bausteinen.",
+          "Mehr braucht es nicht: keine Datenbank, keinen Editor, kein Asset."
+        ]
+      }
+    },
+    {
+      "id": "slide_end",
+      "type": "Slide",
+      "data": {
+        "title": "Ende des Kapitels",
+        "text": "Das nächste Kapitel zeigt je einen Baustein jedes verfügbaren Typs."
+      }
+    }
+  ]
+}

@@ -1,0 +1,51 @@
+{
+  "chapter": "Bausteintypen",
+  "blocks": [
+    {
+      "id": "slide_block",
+      "type": "Slide",
+      "data": {
+        "title": "Folie",
+        "text": "Eine Folie zeigt Titel und Text, auf Wunsch ein Bild.",
+        "image": ""
+      }
+    },
+    {
+      "id": "quiz_block",
+      "type": "Quiz",
+      "data": {
+        "questions": [ "Was ist 2 + 2?", "Welche Farbe hat der Himmel?" ],
+        "answers": [
+          [ "3", "4", "5" ],
+          [ "Blau", "Grün", "Rot" ]
+        ],
+        "correct": [ 1, 0 ]
+      }
+    },
+    {
+      "id": "interaction_block",
+      "type": "Interaction",
+      "data": {
+        "interactionType": "ButtonPress",
+        "prompt": "Zum Weitergehen die Taste drücken."
+      }
+    },
+    {
+      "id": "scene_block",
+      "type": "SceneAction",
+      "data": {
+        "action": "SpawnObject",
+        "parameters": "Cube"
+      }
+    },
+    {
+      "id": "end_block",
+      "type": "Slide",
+      "data": {
+        "title": "Ende",
+        "text": "Das war je ein Baustein jedes Typs.",
+        "image": ""
+      }
+    }
+  ]
+}

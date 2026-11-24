@@ -1,0 +1,33 @@
+{
+  "chapter": "Introduction",
+  "blocks": [
+    {
+      "id": "slide_intro",
+      "type": "Slide",
+      "data": {
+        "title": "Welcome",
+        "text": "Welcome to the example course. It shows how a course is built from JSON files."
+      }
+    },
+    {
+      "id": "slide_step1",
+      "type": "Slide",
+      "data": {
+        "title": "One file per chapter",
+        "text": [
+          "A course is a course.json that lists its chapters.",
+          "Each chapter is a file with an ordered list of blocks.",
+          "Nothing else is needed: no database, no editor, no asset."
+        ]
+      }
+    },
+    {
+      "id": "slide_end",
+      "type": "Slide",
+      "data": {
+        "title": "End of chapter",
+        "text": "The next chapter shows one block of every available type."
+      }
+    }
+  ]
+}

@@ -1,6 +1,6 @@
 {
   "name": "com.github.hka-imp.tcs",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "displayName": "Teaching Content System",
   "description": "Lehrinhalte als JSON-Dateien schreiben und zur Laufzeit abspielen: Folien, Quizfragen, Interaktionen und Szenenaktionen, mehrsprachig ueber Dateivarianten. Ein Kurs ist ein Ordner mit Dateien - versionierbar, uebersetzbar, einzeln in andere Projekte umziehbar. Ohne fremde Abhaengigkeiten, unabhaengig von Robotik oder XR.",
   "unity": "6000.0",
@@ -17,6 +17,14 @@
   },
   "dependencies": {
     "com.unity.nuget.newtonsoft-json": "3.2.2",
-    "com.unity.ugui": "2.0.0"
-  }
+    "com.unity.ugui": "2.0.0",
+    "com.unity.modules.unitywebrequest": "1.0.0"
+  },
+  "samples": [
+    {
+      "displayName": "Example Course",
+      "description": "A two-chapter example course in English and German (CC BY 4.0). Move the TCS folder into Assets/StreamingAssets.",
+      "path": "Samples~/ExampleCourse"
+    }
+  ]
 }

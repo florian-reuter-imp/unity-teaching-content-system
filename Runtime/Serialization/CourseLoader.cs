@@ -7,17 +7,42 @@ namespace TeachingContentSystem.Runtime.Core
 {
     public static class CourseLoader
     {
+        /// <summary>
+        /// Laedt einen Kurs ueber die Quellen aus
+        /// <see cref="TcsContentLocations"/>; ohne Einstellung ist das
+        /// StreamingAssets allein, wie bisher. Der Pfad ist relativ zu den
+        /// Quellen, etwa <c>TCS/ExampleCourse/course.json</c>.
+        ///
+        /// Ein absoluter Pfad wird wie frueher direkt aus dem Dateisystem
+        /// gelesen, mit Kapiteln relativ zu seinem Ordner.
+        /// </summary>
         public static RuntimeContentGraph LoadCourse(string courseJsonPath)
         {
-            string fullPath = Path.Combine(Application.streamingAssetsPath, courseJsonPath);
+            if (!string.IsNullOrEmpty(courseJsonPath) && Path.IsPathRooted(courseJsonPath))
+            {
+                var folder = new FolderSource(Path.GetDirectoryName(courseJsonPath));
+                return LoadCourse(Path.GetFileName(courseJsonPath), new ContentResolver(folder));
+            }
+
+            return LoadCourse(courseJsonPath, TcsContentLocations.Resolver);
+        }
+
+        /// <summary>
+        /// Laedt einen Kurs ueber eine bestimmte Liste von Quellen. Jede
+        /// Datei (Gliederung und jedes Kapitel) wird einzeln gesucht: Die
+        /// erste Quelle, die sie hat, gewinnt, in der aktuellen Sprache wenn
+        /// vorhanden.
+        /// </summary>
+        public static RuntimeContentGraph LoadCourse(string courseJsonPath, ContentResolver resolver)
+        {
+            string coursePath = ContentResolver.Normalize(courseJsonPath);
 
             // Auch die Gliederung darf uebersetzt vorliegen, etwa wenn ein
             // Kurs in einer Sprache zusaetzliche Kapitel hat.
-            fullPath = TcsLanguage.Localize(fullPath);
-
-            string json = File.ReadAllText(fullPath);
+            string json = resolver.Read(coursePath);
 
             CourseDefinition course = JsonConvert.DeserializeObject<CourseDefinition>(json);
+            string courseDirectory = ContentResolver.DirectoryOf(coursePath);
 
             RuntimeContentGraph graph = new RuntimeContentGraph
             {
@@ -35,10 +60,11 @@ namespace TeachingContentSystem.Runtime.Core
 
             foreach (string chapterFile in course.chapters)
             {
-                string chapterPath = Path.Combine(Path.GetDirectoryName(fullPath), chapterFile);
-
-                // Load chapter using the new ChapterLoader
-                ChapterContent chapter = ChapterLoader.LoadChapter(chapterPath);
+                // Relativ zum Ordner der Gliederung, und je Datei aufgeloest:
+                // Ein Kapitel kann aus einer anderen Quelle kommen als die
+                // Gliederung.
+                string chapterPath = ContentResolver.Combine(courseDirectory, chapterFile);
+                ChapterContent chapter = ChapterLoader.LoadChapter(chapterPath, resolver);
                 string chapterName = chapter.ChapterName;
                 graph.ChapterOrder.Add(chapterName);
 

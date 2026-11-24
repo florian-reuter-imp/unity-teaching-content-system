@@ -2,6 +2,61 @@
 
 Dieses Projekt folgt [Semantic Versioning](https://semver.org/lang/de/).
 
+## [0.2.0]
+
+### Neu: Wo die Kurse liegen, im Code festgelegt
+- `ICourseSource` mit `StreamingAssetsSource`, `FolderSource` und
+  `MemorySource`; `TcsContentLocations.Configure(...)` und
+  `ConfigureFor(platform, ...)` legen eine geordnete Liste fest, auf Wunsch
+  je Plattform. Vorgabe bleibt StreamingAssets allein.
+- Aufgeloest wird je Datei: Die erste Quelle, die die Datei hat, gewinnt.
+  Ein Ordner auf dem Geraet kann so einzelne Kapitel ersetzen. Die
+  Sprachfassung (`*.de.json`) wird je Quelle gesucht, wie bei
+  `TcsLanguage.Localize`.
+- `StreamingAssetsSource` liest auf Android und Quest ueber
+  `UnityWebRequest`. Vorher las `CourseLoader` mit `File.ReadAllText`, und
+  das findet in einer APK nichts.
+- `ContentSeeder.SeedCourse` fuellt einen beschreibbaren Ordner beim ersten
+  Start aus StreamingAssets und ueberschreibt nie eine vorhandene Datei.
+- `CourseLoader.LoadCourse(pfad)` und `ChapterLoader.LoadChapter(pfad)`
+  bleiben, wie sie waren, und laufen jetzt ueber die Quellen. Ein absoluter
+  Pfad wird weiter direkt gelesen. Neu sind Ueberladungen mit einem
+  `ContentResolver` und `ChapterLoader.FromJson`.
+- Die Kurspruefung im Editor laedt ausdruecklich aus StreamingAssets, damit
+  sie die ausgelieferten Dateien prueft und nicht eine Ueberschreibung.
+
+### Kursende
+- `ContentManager.GoToNext()` am letzten Baustein schreibt keinen Fehler mehr
+  ins Log. Vorher stand dort `has no NextIds`, bei einer Folie mit Dauer am
+  Kursende sogar in jedem Bild.
+- Neu: `CanGoNext`, `CanGoBack`, `IsAtEnd`, `IsAtStart`, das Ereignis
+  `CourseEndReached` und `NavigationEvents.OnCourseEndReached`, einmal je
+  Besuch des letzten Bausteins.
+- `TcsSettings.WrapAtEnd` (Vorgabe `false`): nach dem Ende wieder von vorn,
+  und "zurueck" am Anfang fuehrt zum Ende.
+- `GoBack()` ohne Verlauf warnt nicht mehr, es tut nichts.
+- `RuntimeContentUI` graut "weiter" am Ende und "zurueck" am Anfang aus.
+  Neue optionale Felder `nextButton`, `backButton`, `contentManager`; leer
+  findet die Oberflaeche die Knoepfe ueber deren OnClick selbst.
+
+### Lesbare Tafeln in VR
+- `ReadableWorldPanel` fuer Weltflaechen: Mindestschrift aus Leseabstand und
+  Canvas-Massstab, `dynamicPixelsPerUnit`, etwas Dilate fuer TextMeshPro.
+  Die README nennt die Faustregel (Versalhoehe mindestens 7 mm je Meter
+  Abstand) und die Einstellungen ausserhalb des Pakets.
+- Das Hintergrundbild `UI_Background.png` hat Mipmaps, damit es an einer
+  entfernten Tafel nicht flimmert.
+
+### Beispielkurs als Sample
+- `Samples~/ExampleCourse` mit `samples`-Eintrag in der `package.json`: zwei
+  Kapitel auf Englisch und Deutsch, Texte unter CC BY 4.0. Der Baustein vom
+  Typ `Assistant` ist darin entfallen; den Typ gibt es seit 0.1.0 nicht mehr,
+  er haette beim Abspielen "Unknown block type" gemeldet.
+
+### Abhaengigkeiten
+- `com.unity.modules.unitywebrequest` (eingebautes Modul) ist jetzt
+  angegeben, weil `StreamingAssetsSource` es benutzt.
+
 ## [0.1.0] — 20.10.2026
 
 ### Vor der Veroeffentlichung durchgesehen

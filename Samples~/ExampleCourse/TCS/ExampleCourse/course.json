@@ -1,0 +1,8 @@
+{
+  "course": "Example Course",
+  "comment": "Beispielkurs des Teaching Content System. Das erste Kapitel zeigt den einfachsten Fall, das zweite je einen Baustein jeden Typs. Beide liegen auch auf Deutsch vor (.de.json) und zeigen damit die Sprachwahl.",
+  "chapters": [
+    "chapters/introduction.json",
+    "chapters/block_types.json"
+  ]
+}

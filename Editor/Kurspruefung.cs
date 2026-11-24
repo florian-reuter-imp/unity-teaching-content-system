@@ -132,7 +132,11 @@ namespace TeachingContentSystem.EditorTools
                                      .Replace('\\', '/');
                 try
                 {
-                    var graph = CourseLoader.LoadCourse(relativ);
+                    // Ausdruecklich StreamingAssets: Geprueft werden die
+                    // ausgelieferten Dateien, nicht Ueberschreibungen, die
+                    // TcsContentLocations vielleicht vorschaltet.
+                    var graph = CourseLoader.LoadCourse(relativ,
+                        new ContentResolver(new StreamingAssetsSource()));
                     if (graph.Nodes.Count != bausteine)
                     {
                         Debug.LogWarning($"Kurspruefung: {Kurz(pfad)} ergibt "

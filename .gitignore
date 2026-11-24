@@ -27,4 +27,5 @@ Thumbs.db
 # dessen Zusage "keine fremde Abhaengigkeit" lautet. Dazu fehlten allen
 # Beispieldateien die .meta, ihre Verweise untereinander waeren beim Import
 # gebrochen. Sie kommt wieder, wenn sie ohne Fremdbestandteile neu gebaut ist.
-Samples~/
+# Der Beispielkurs (Samples~/ExampleCourse) gehoert dagegen ins Repo.
+Samples~/ExampleScenes/

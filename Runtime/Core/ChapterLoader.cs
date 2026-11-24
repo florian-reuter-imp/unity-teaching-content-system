@@ -8,13 +8,33 @@ namespace TeachingContentSystem.Runtime.Core
 {
     public static class ChapterLoader
     {
+        /// <summary>
+        /// Laedt ein Kapitel. Ein absoluter Pfad wird wie frueher direkt aus
+        /// dem Dateisystem gelesen; ein relativer ueber die Quellen aus
+        /// <see cref="TcsContentLocations"/>.
+        /// </summary>
         public static ChapterContent LoadChapter(string chapterPath)
         {
-            // Gibt es das Kapitel in der gewaehlten Sprache, wird es
-            // genommen; sonst bleibt es bei der Grundform (TcsLanguage).
-            chapterPath = TcsLanguage.Localize(chapterPath);
+            if (!string.IsNullOrEmpty(chapterPath) && Path.IsPathRooted(chapterPath))
+            {
+                var folder = new FolderSource(Path.GetDirectoryName(chapterPath));
+                return LoadChapter(Path.GetFileName(chapterPath), new ContentResolver(folder));
+            }
 
-            string json = File.ReadAllText(chapterPath);
+            return LoadChapter(chapterPath, TcsContentLocations.Resolver);
+        }
+
+        /// <summary>
+        /// Laedt ein Kapitel ueber eine bestimmte Liste von Quellen. Gibt es
+        /// das Kapitel in der gewaehlten Sprache, wird es genommen; sonst
+        /// bleibt es bei der Grundform (siehe <see cref="ContentResolver"/>).
+        /// </summary>
+        public static ChapterContent LoadChapter(string relativePath, ContentResolver resolver)
+            => FromJson(resolver.Read(relativePath));
+
+        /// <summary>Baut ein Kapitel aus dem Inhalt einer Kapiteldatei.</summary>
+        public static ChapterContent FromJson(string json)
+        {
             ChapterDefinition chapterDef = JsonConvert.DeserializeObject<ChapterDefinition>(json);
 
             ChapterContent chapter = new ChapterContent

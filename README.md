@@ -28,17 +28,27 @@ JSON geschrieben, und zwei Quellen der Wahrheit sind schlechter als eine.
 Im Package Manager über **Add package from git URL**:
 
 ```
-https://github.com/florian-reuter-imp/unity-teaching-content-system.git#v0.1.0
+https://github.com/florian-reuter-imp/unity-teaching-content-system.git#v0.2.0
 ```
 
 Oder als Eintrag in `Packages/manifest.json`:
 
 ```json
-"com.github.hka-imp.tcs": "https://github.com/florian-reuter-imp/unity-teaching-content-system.git#v0.1.0"
+"com.github.hka-imp.tcs": "https://github.com/florian-reuter-imp/unity-teaching-content-system.git#v0.2.0"
 ```
 
 Das Versionsschild am Ende gehört dazu. Ohne es zieht jeder Klon einen
 beliebigen Stand, und das Projekt ist nicht mehr reproduzierbar.
+
+### Beispielkurs
+
+Im Package Manager unter **Samples** liegt **Example Course**: zwei Kapitel
+auf Englisch und Deutsch, eines mit schlichten Folien, eines mit je einem
+Baustein der Typen `Slide`, `Quiz`, `Interaction` und `SceneAction`. Nach dem
+Import den Ordner `TCS` aus dem Beispiel nach `Assets/StreamingAssets/`
+verschieben, sodass die Gliederung unter
+`Assets/StreamingAssets/TCS/ExampleCourse/course.json` liegt. Die Texte
+stehen unter CC BY 4.0, siehe `README.md` im Beispiel.
 
 ## Aufbau eines Kurses
 
@@ -121,6 +131,103 @@ einem Baustein.
 `ContentManager`, und den Pfad zur Gliederung innerhalb von `StreamingAssets`
 eintragen, etwa `TCS/ExampleCourse/course.json`.
 
+## Wo die Kurse liegen
+
+Ohne weitere Angabe liest das System aus `StreamingAssets`, wie bisher. Im
+Code lässt sich eine geordnete Liste von Orten festlegen, auf Wunsch je
+Plattform:
+
+```csharp
+using TeachingContentSystem.Runtime.Core;
+using UnityEngine;
+
+static class KursOrte
+{
+    [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.BeforeSceneLoad)]
+    static void Festlegen()
+    {
+        // Überall: erst der Ordner auf dem Gerät, dann die ausgelieferte Fassung.
+        TcsContentLocations.Configure(
+            FolderSource.PersistentData(),
+            new StreamingAssetsSource());
+
+        // Am Schreibtisch zusätzlich ein Arbeitsordner, der vorgeht.
+        TcsContentLocations.ConfigureFor(RuntimePlatform.WindowsEditor,
+            new FolderSource(@"D:\Kurse"),
+            new StreamingAssetsSource());
+
+        // Beim ersten Start auf dem Gerät eine bearbeitbare Kopie anlegen.
+        // Vorhandene Dateien bleiben unangetastet.
+        ContentSeeder.SeedCourse("TCS/ExampleCourse/course.json",
+                                 Application.persistentDataPath);
+    }
+}
+```
+
+Die Regeln:
+
+- **Je Datei, nicht je Kurs.** Für die Gliederung und für jedes Kapitel
+  einzeln gewinnt der erste Ort, der die Datei hat. Ein Ordner auf dem Gerät
+  kann so ein einzelnes Kapitel ersetzen; alles andere kommt weiter aus
+  `StreamingAssets`.
+- **Sprache je Ort.** Innerhalb eines Ortes gilt dieselbe Regel wie bisher:
+  `kapitel.de.json`, wenn es sie gibt, sonst `kapitel.json`. Erst wenn ein
+  Ort keine der beiden hat, kommt der nächste dran. Wer ein Kapitel auf dem
+  Gerät ersetzt, ersetzt es also für alle Sprachen; eine ältere Übersetzung
+  aus `StreamingAssets` schlägt eine neuere Grundform nicht. Sollen beide
+  Sprachen ersetzt werden, gehören beide Dateien in den Ordner.
+- **Pfade** sind relativ zum Ort und haben Schrägstriche, etwa
+  `TCS/ExampleCourse/course.json`. Ein absoluter Pfad an `LoadCourse` wird
+  wie früher direkt gelesen.
+- Eine Liste für eine Plattform (`ConfigureFor`) geht vor die allgemeine
+  (`Configure`). `TcsContentLocations.Reset()` stellt die Vorgabe wieder her.
+
+Wichtig: **Ein Build kann Dateien nur nach `StreamingAssets` legen.** Die
+erste Fassung jedes Kurses muss deshalb dort liegen. Alle anderen Orte sind
+Überschreibungen auf dem Gerät, etwa um auf einer Brille einen Text zu
+korrigieren, ohne neu zu bauen.
+
+Die Orte im Einzelnen:
+
+| Quelle | Wofür |
+|---|---|
+| `StreamingAssetsSource(unterordner)` | Die ausgelieferte Fassung. Liest auf Android und Quest über `UnityWebRequest` aus der APK, sonst über das Dateisystem. |
+| `FolderSource(pfad)`, `FolderSource.PersistentData(unterordner)` | Ein beliebiger Ordner, auf Geräten meist `Application.persistentDataPath`. |
+| `MemorySource` | Dateien im Arbeitsspeicher: für Tests, selbst erzeugte Inhalte oder vorab asynchron geholte Dateien. |
+| eigenes `ICourseSource` | Eine Methode, `TryReadText(relativerPfad, out text)`. |
+
+Wer an der globalen Einstellung vorbei mit eigener Liste laden will:
+`CourseLoader.LoadCourse(pfad, new ContentResolver(quelle1, quelle2))`.
+
+Gelesen wird synchron, wie bisher. Auf WebGL geht das für `StreamingAssets`
+nicht; dort die Dateien vorab mit `UnityWebRequest` holen und über eine
+`MemorySource` anbieten.
+
+## Kursende
+
+Am letzten Baustein ist „weiter" kein Fehler mehr, sondern das Ende des
+Kurses:
+
+- `ContentManager.CanGoNext` und `CanGoBack` sagen, ob die Knöpfe etwas tun.
+  Dazu `IsAtEnd` und `IsAtStart`.
+- `GoToNext()` am Ende meldet einmal je Besuch des letzten Bausteins
+  `NavigationEvents.OnCourseEndReached` und das Ereignis
+  `ContentManager.CourseEndReached`, jeweils mit der Kennung des Knotens.
+- `TcsSettings.WrapAtEnd` (Vorgabe `false`) legt fest, ob es danach wieder von
+  vorn losgeht; dann führt auch „zurück" am ersten Baustein zum letzten.
+
+```csharp
+TcsSettings.WrapAtEnd = true;
+NavigationEvents.OnCourseEndReached += knoten => Debug.Log("Kurs fertig");
+```
+
+`RuntimeContentUI` graut „weiter" am Ende und „zurück" am Anfang aus, solange
+kein Umlauf eingestellt ist. Die Knöpfe lassen sich in den Feldern
+`nextButton` und `backButton` zuweisen; bleiben sie leer, sucht die
+Oberfläche in ihrer Canvas nach Knöpfen, deren OnClick
+`ContentManager.GoToNext` oder `GoBack` aufruft. Vorhandene Prefabs brauchen
+also keine Änderung.
+
 ## Sprachen
 
 Übersetzt wird je Datei: Neben `kapitel.json` liegt `kapitel.de.json`. Gibt
@@ -159,12 +266,81 @@ Eintrag in `BlockFactory`, der den Typnamen aus dem JSON darauf abbildet.
 Mehr ist nicht nötig: Seit dem Wegfall des Graph-Editors gibt es kein
 zweites, editorseitiges Gegenstück mehr zu pflegen.
 
+## Lesbare Tafeln in VR
+
+In einer Brille gibt es nur Weltflächen: Canvas im Modus **World Space**.
+Bildschirm-Canvases (Screen Space) sieht dort niemand. Ob ein Text lesbar
+ist, hängt am Sehwinkel, nicht an der Schriftgröße im Inspector.
+
+### Die Faustregel
+
+Für heutige Brillen mit rund 20 bis 25 Bildpunkten je Grad:
+
+- **Versalhöhe mindestens 7 mm je Meter Abstand** (7 mrad, etwa 0,4 Grad).
+  Darunter wird ein Großbuchstabe mit weniger als zehn Bildpunkten
+  gezeichnet und flimmert bei jeder Kopfbewegung.
+- **Fließtext bequem ab 10 mm je Meter** (10 mrad, etwa 0,6 Grad).
+- Bei TextMeshPro ist die Versalhöhe etwa 0,7 der Schriftgröße.
+
+Beispiel: Eine Tafel mit Maßstab 0,001 (eine Canvas-Einheit ist ein
+Millimeter) in 1 m Abstand braucht mindestens Schriftgröße 10, für
+Fließtext 14. In 2 m das Doppelte. Ein häufiger Fehler ist eine Tafel, die
+im Editor aus der Nähe gut aussieht und in 1,5 m mit Schriftgröße 8 hängt.
+
+### Der Helfer im Paket
+
+`ReadableWorldPanel` an die Canvas hängen und den Leseabstand eintragen. Beim
+Aktivieren (im Editor über das Kontextmenü **Apply now**):
+
+- hebt es zu kleine Schriften auf die Mindestgröße an, bei TextMeshPro mit
+  Autosize auch `fontSizeMin`; verkleinert wird nie,
+- setzt `CanvasScaler.dynamicPixelsPerUnit` auf mindestens 3, damit
+  uGUI-`Text` nicht grob gerastert wird (TextMeshPro braucht das nicht),
+- gibt TextMeshPro im Spiel ein geteiltes Material mit etwas *Face Dilate*
+  (Vorgabe 0,1). Etwas kräftigere Glyphen flimmern weniger als dünne.
+- Die Rechnung steht auch für eigenen Code bereit:
+  `ReadableWorldPanel.MinimumFontSize(maßstab, abstand)`.
+
+### Was der Helfer nicht ersetzen kann
+
+- **Schrift:** keine sehr dünnen Schnitte (Light, Thin). Regular oder Medium.
+  Im Font Asset ein Atlas mit ausreichendem Abstand (Padding etwa 10 % der
+  Sampling-Größe), sonst schneidet Dilate die Ränder ab.
+- **Hintergründe:** keine 1-px-Linien, Haarlinien-Rahmen oder feinen Muster.
+  Sie kippen zwischen zwei Bildpunkten hin und her. Flächen und Ränder ab
+  etwa 2 mm je Meter Abstand. Texturen für Weltflächen mit Mipmaps
+  importieren; das Hintergrundbild dieses Pakets tut das ab 0.2.0.
+- **Kontrast:** heller Text auf dunkler, nicht ganz schwarzer Fläche ist in
+  den meisten Brillen ruhiger als umgekehrt.
+
+### Einstellungen im Projekt, außerhalb des Pakets
+
+- **MSAA 4x** im Render-Pipeline-Asset (URP: *Quality › Anti Aliasing*).
+  Glättet die Kanten von Flächen und Knöpfen; Schrift glättet TextMeshPro
+  selbst.
+- **Render Scale 1.0**, nicht darunter. Eine kleinere Skala spart Leistung
+  und kostet genau die Bildpunkte, die Schrift braucht.
+- Auf Quest: Eye-Buffer-Auflösung nicht senken, *Foveated Rendering*
+  höchstens niedrig, weil Tafeln am Rand des Blickfelds sonst unscharf
+  werden.
+- Tafeln nicht dauernd minimal bewegen (etwa durch Nachführen am Kopf mit
+  Zittern); ruhende Flächen flimmern am wenigsten.
+
+**Fortgeschritten:** OpenXR *Composition Layers* (Paket
+`com.unity.xr.compositionlayers`) zeichnen eine Tafel als eigene Ebene, die
+der Compositor direkt in Bildschirmauflösung abtastet, ohne den Umweg über
+das Augenbild. Text wird damit sichtbar schärfer. Das ist eine eigene
+Abhängigkeit und lohnt sich für Tafeln mit viel Text; dieses Paket setzt sie
+nicht voraus.
+
 ## Abhängigkeiten
 
 - **Newtonsoft.Json** (`com.unity.nuget.newtonsoft-json`): Einlesen
 - **uGUI / TextMeshPro** (`com.unity.ugui`): Laufzeitoberfläche
+- **UnityWebRequest** (`com.unity.modules.unitywebrequest`, eingebautes
+  Modul): `StreamingAssets` auf Android lesen
 
-Beide kommen von Unity. Fremdsoftware enthält das Paket nicht.
+Alle kommen von Unity. Fremdsoftware enthält das Paket nicht.
 
 ## Lizenz
 

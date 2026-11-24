@@ -1,0 +1,51 @@
+{
+  "chapter": "Block types",
+  "blocks": [
+    {
+      "id": "slide_block",
+      "type": "Slide",
+      "data": {
+        "title": "Slide",
+        "text": "A slide shows a title and text, optionally an image.",
+        "image": ""
+      }
+    },
+    {
+      "id": "quiz_block",
+      "type": "Quiz",
+      "data": {
+        "questions": [ "What is 2 + 2?", "What colour is the sky?" ],
+        "answers": [
+          [ "3", "4", "5" ],
+          [ "Blue", "Green", "Red" ]
+        ],
+        "correct": [ 1, 0 ]
+      }
+    },
+    {
+      "id": "interaction_block",
+      "type": "Interaction",
+      "data": {
+        "interactionType": "ButtonPress",
+        "prompt": "Press the button to continue."
+      }
+    },
+    {
+      "id": "scene_block",
+      "type": "SceneAction",
+      "data": {
+        "action": "SpawnObject",
+        "parameters": "Cube"
+      }
+    },
+    {
+      "id": "end_block",
+      "type": "Slide",
+      "data": {
+        "title": "End",
+        "text": "That was one block of every type.",
+        "image": ""
+      }
+    }
+  ]
+}
